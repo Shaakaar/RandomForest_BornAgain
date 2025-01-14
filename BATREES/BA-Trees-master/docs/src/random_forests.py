@@ -41,7 +41,7 @@ def create_depth_selection(show=True):
     select = widgets.IntSlider(
             value=3,
             min=2,
-            max=5,
+            max=10,
             step=1,
             description='Max depth:',
             disabled=False,
@@ -142,7 +142,7 @@ def create_random_forest(
     # Prepare the output directory and file path
     output_dir = os.path.join("output_new", "RF", current_dataset)
     random_forest_file = os.path.join(
-        output_dir, f"{current_dataset}.RF{current_fold}.T{n_trees}.txt"
+        output_dir, f"{current_dataset}.RF{current_fold}.T{n_trees}.D{tree_depth}.txt"
     )
 
     if return_file:
@@ -194,3 +194,4 @@ def create_random_forest(
         return random_forest, random_forest_file
 
     return random_forest
+
