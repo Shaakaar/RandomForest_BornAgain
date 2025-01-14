@@ -15,8 +15,7 @@ import datasets as ds
 import random_forests as rf
 import persistence as tree_io
 import visualization as tree_view
-
-#%%
+from pathlib import Path
 
 
 selected_n_obj = rf.create_objective_selection()
@@ -24,8 +23,7 @@ selected_n_tree = rf.create_n_trees_selection()
 selected_kfold = ds.create_kfold_selection()
 selected_datasets = ds.create_dataset_selection() 
 selected_cplex = ds.create_cplex_linking_selection()
-
-
+selected_depth = rf.create_depth_selection()
 
 #%%
 
@@ -35,11 +33,9 @@ current_dataset=ds.dataset_names[selected_datasets.index]
 current_fold = selected_kfold.value
 n_trees = selected_n_tree.value
 using_cplex = selected_cplex.value
-max_tree_depth = 3
-#%%
+max_tree_depth = 10
 
 
-#%%
 current_obj_loop = [4]
 #current_dataset_loop = ['COMPAS-ProPublica', 'FICO', 
  #                  'HTRU2', 'Pima-Diabetes', 
@@ -48,14 +44,13 @@ current_obj_loop = [4]
 #current_fold_loop = [1,2,3,4,5,6,7,8,9,10]
 current_fold_loop = [1,2,3]
 #n_trees_loop = [5, 10, 50, 100, 250, 500]
-n_trees_loop = [5, 10, 50]
+n_trees_loop = [5, 10]
 using_cplex_loop = False
-max_tree_depth_loop = [3]
+max_tree_depth_loop = [10]
 
-current_dataset_loop = ['COMPAS-ProPublica', 'FICO', 
+current_dataset_loop = ['AGE' 
 ]
 
-#%%
 
 for current_dataset in current_dataset_loop:
     for current_fold in current_fold_loop:
@@ -94,7 +89,59 @@ for current_dataset in current_dataset_loop:
                 #display(Image(tree_view.create_graph(rf_trees, features=ds_infos['features'], classes=ds_infos['classes'], colors=ds_infos['colors']).create_png()))
 
 
-#%%
+
+def run_all_datasets():
+    # 1. Create the directories if they don't exist yet
+    output_new_dir = Path("C:/Users/shaka/OneDrive/Email attachments/Documenten/Data Science Project/BATREES/BA-Trees-master/docs/src/output_new")
+    born_again_dir = output_new_dir / "Born_Again"
+    
+    output_new_dir.mkdir(parents=True, exist_ok=True)
+    born_again_dir.mkdir(parents=True, exist_ok=True)
+
+    # 2. Create subfolders for each dataset
+    datasets = ["AGE"]
+    for n in datasets:
+        dataset_dir = born_again_dir / n
+        dataset_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 3. Define the loops
+    objectives = [4]
+    folds = range(1, 4)    # {1..3}
+    trees_list = [5, 10]
+    tree_depth = [10]
+
+    exe_path = r"C:\Users\shaka\OneDrive\Email attachments\Documenten\Data Science Project\BATREES\BA-Trees-master\docs\src\born_again_dp\bornAgain.exe"
+
+    # 4. For each combination, run the bornAgain executable
+    for o in objectives:
+        for n in datasets:
+            for u in folds:
+                for t in trees_list:
+                    for d in tree_depth:
+                        rf_input = f"C:/Users/shaka/OneDrive/Email attachments/Documenten/Data Science Project/BATREES/BA-Trees-master/docs/src/output_new/RF/{n}/{n}.RF{u}.T{t}.D{d}.txt"
+                        ba_output = f"C:/Users/shaka/OneDrive/Email attachments/Documenten/Data Science Project/BATREES/BA-Trees-master/docs/src/output_new/Born_Again/{n}/{n}.BA{u}.O{o}.T{t}.D{d}"
+
+                        # Build the command
+                        cmd = [
+                            exe_path,  # or "./bornAgain.exe", or an absolute path
+                            rf_input,
+                            ba_output,
+                            "-trees",
+                            str(t),
+                            "-obj",
+                            str(o)
+                        ]
+
+                        print(f"Running: {' '.join(cmd)}")
+                        ret = subprocess.run(cmd)
+                        if ret.returncode != 0:
+                            print(f"Error: Command {cmd} failed with code {ret.returncode}")
+                            # Optionally break or handle error
+
+run_all_datasets()
+
+
+
 # Create directories for saving figures
 figure_output_dir = "output_new/Figures"
 os.makedirs(figure_output_dir, exist_ok=True)
@@ -121,8 +168,8 @@ for current_dataset in current_dataset_loop:
                 X_test, y_test = df_test.iloc[:,:-1].values, df_test.iloc[:,-1].values
 
                 # Define paths
-                born_again_file = f"output_new/Born_Again/{current_dataset}/{current_dataset}.BA{current_fold}.O{current_obj}.T{n_trees}"
-                random_forest_file = f"output_new/RF/{current_dataset}/{current_dataset}.RF{current_fold}.T{n_trees}.txt"
+                born_again_file = f"output_new/Born_Again/{current_dataset}/{current_dataset}.BA{current_fold}.O{current_obj}.T{n_trees}.D{max_tree_depth}"
+                random_forest_file = f"output_new/RF/{current_dataset}/{current_dataset}.RF{current_fold}.T{n_trees}.D{max_tree_depth}.txt"
 
                 # Load Random Forest
                 random_forest = tree_io.classifier_from_file(random_forest_file, X_train, y_train, pruning=False)
@@ -221,4 +268,7 @@ for current_dataset in current_dataset_loop:
 # Convert aggregated results to a DataFrame
 results_df = pd.DataFrame(aggregated_results)
 
-#%%
+
+
+# %%
+print(results_df)
