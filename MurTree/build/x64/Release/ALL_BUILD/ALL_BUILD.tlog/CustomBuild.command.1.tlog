@@ -1,0 +1,10 @@
+^C:\USERS\SHAKA\ONEDRIVE\EMAIL ATTACHMENTS\DOCUMENTEN\DATA SCIENCE PROJECT\MURTREE-MASTER\MURTREE-MASTER\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/shaka/OneDrive/Email attachments/Documenten/Data Science Project/MurTree-Master/murtree-master" "-BC:/Users/shaka/OneDrive/Email attachments/Documenten/Data Science Project/MurTree-Master/build" --check-stamp-file "C:/Users/shaka/OneDrive/Email attachments/Documenten/Data Science Project/MurTree-Master/build/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

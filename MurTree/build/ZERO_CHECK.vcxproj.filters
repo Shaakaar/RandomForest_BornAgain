@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\shaka\OneDrive\Email attachments\Documenten\Data Science Project\MurTree-Master\build\CMakeFiles\4c2654ef3c96b4cf4bd9f031535ddf90\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{4B39D49B-F7CB-3C6E-A662-5D42B296B197}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
