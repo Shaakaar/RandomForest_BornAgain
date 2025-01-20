@@ -1,0 +1,47 @@
+DATASET_NAME: HTRU2.train3.csv
+ENSEMBLE: BA
+NB_TREES: 1
+NB_FEATURES: 8
+NB_CLASSES: 2
+MAX_TREE_DEPTH: 6
+Format: node / node type(LN - leave node, IN - internal node) left child / right child / feature / threshold / node_depth / majority class (starts with index 0)
+
+[TREE 0]
+NB_NODES: 37
+0 IN 1 22 0 0.5 0 -1
+1 IN 2 3 2 8.5 1 -1
+2 LN -1 -1 -1 -1 2 0
+3 IN 4 15 3 8.5 2 -1
+4 IN 5 10 6 2.5 3 -1
+5 IN 6 9 5 7.5 4 -1
+6 IN 7 8 7 2.5 5 -1
+7 LN -1 -1 -1 -1 6 1
+8 LN -1 -1 -1 -1 6 0
+9 LN -1 -1 -1 -1 5 1
+10 IN 11 12 5 6.5 4 -1
+11 LN -1 -1 -1 -1 5 0
+12 IN 13 14 7 2.5 5 -1
+13 LN -1 -1 -1 -1 6 1
+14 LN -1 -1 -1 -1 6 0
+15 IN 16 19 7 2.5 3 -1
+16 IN 17 18 5 6.5 4 -1
+17 LN -1 -1 -1 -1 5 0
+18 LN -1 -1 -1 -1 5 1
+19 IN 20 21 5 7.5 4 -1
+20 LN -1 -1 -1 -1 5 0
+21 LN -1 -1 -1 -1 5 1
+22 IN 23 24 2 8.5 1 -1
+23 LN -1 -1 -1 -1 2 0
+24 IN 25 32 3 8.5 2 -1
+25 IN 26 27 5 6.5 3 -1
+26 LN -1 -1 -1 -1 4 0
+27 IN 28 31 6 2.5 4 -1
+28 IN 29 30 7 2.5 5 -1
+29 LN -1 -1 -1 -1 6 1
+30 LN -1 -1 -1 -1 6 0
+31 LN -1 -1 -1 -1 5 0
+32 IN 33 34 5 6.5 3 -1
+33 LN -1 -1 -1 -1 4 0
+34 IN 35 36 7 2.5 4 -1
+35 LN -1 -1 -1 -1 5 1
+36 LN -1 -1 -1 -1 5 0

@@ -1,0 +1,43 @@
+DATASET_NAME: Breast-Cancer-Wisconsin.train5.csv
+ENSEMBLE: BA
+NB_TREES: 1
+NB_FEATURES: 9
+NB_CLASSES: 2
+MAX_TREE_DEPTH: 5
+Format: node / node type(LN - leave node, IN - internal node) left child / right child / feature / threshold / node_depth / majority class (starts with index 0)
+
+[TREE 0]
+NB_NODES: 33
+0 IN 1 18 1 3.5 0 -1
+1 IN 2 9 0 6.5 1 -1
+2 IN 3 4 1 1.5 2 -1
+3 LN -1 -1 -1 -1 3 0
+4 IN 5 6 2 3.5 3 -1
+5 LN -1 -1 -1 -1 4 0
+6 IN 7 8 4 4.5 4 -1
+7 LN -1 -1 -1 -1 5 0
+8 LN -1 -1 -1 -1 5 1
+9 IN 10 11 1 1.5 2 -1
+10 LN -1 -1 -1 -1 3 0
+11 IN 12 15 2 3.5 3 -1
+12 IN 13 14 0 7.5 4 -1
+13 LN -1 -1 -1 -1 5 0
+14 LN -1 -1 -1 -1 5 1
+15 IN 16 17 4 1.5 4 -1
+16 LN -1 -1 -1 -1 5 0
+17 LN -1 -1 -1 -1 5 1
+18 IN 19 28 1 4.5 1 -1
+19 IN 20 23 2 3.5 2 -1
+20 IN 21 22 6 2.5 3 -1
+21 LN -1 -1 -1 -1 4 0
+22 LN -1 -1 -1 -1 4 1
+23 IN 24 25 4 1.5 3 -1
+24 LN -1 -1 -1 -1 4 0
+25 IN 26 27 6 2.5 4 -1
+26 LN -1 -1 -1 -1 5 0
+27 LN -1 -1 -1 -1 5 1
+28 IN 29 30 2 3.5 2 -1
+29 LN -1 -1 -1 -1 3 1
+30 IN 31 32 4 1.5 3 -1
+31 LN -1 -1 -1 -1 4 0
+32 LN -1 -1 -1 -1 4 1

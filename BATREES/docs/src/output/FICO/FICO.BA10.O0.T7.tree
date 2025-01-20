@@ -1,0 +1,41 @@
+DATASET_NAME: FICO.train10.csv
+ENSEMBLE: BA
+NB_TREES: 1
+NB_FEATURES: 17
+NB_CLASSES: 2
+MAX_TREE_DEPTH: 7
+Format: node / node type(LN - leave node, IN - internal node) left child / right child / feature / threshold / node_depth / majority class (starts with index 0)
+
+[TREE 0]
+NB_NODES: 31
+0 IN 1 28 0 0.5 0 -1
+1 IN 2 3 1 0.5 1 -1
+2 LN -1 -1 -1 -1 2 0
+3 IN 4 17 4 0.5 2 -1
+4 IN 5 10 9 0.5 3 -1
+5 IN 6 7 12 0.5 4 -1
+6 LN -1 -1 -1 -1 5 0
+7 IN 8 9 15 0.5 5 -1
+8 LN -1 -1 -1 -1 6 0
+9 LN -1 -1 -1 -1 6 1
+10 IN 11 12 12 0.5 4 -1
+11 LN -1 -1 -1 -1 5 0
+12 IN 13 16 14 0.5 5 -1
+13 IN 14 15 15 0.5 6 -1
+14 LN -1 -1 -1 -1 7 0
+15 LN -1 -1 -1 -1 7 1
+16 LN -1 -1 -1 -1 6 1
+17 IN 18 21 9 0.5 3 -1
+18 IN 19 20 12 0.5 4 -1
+19 LN -1 -1 -1 -1 5 0
+20 LN -1 -1 -1 -1 5 1
+21 IN 22 27 12 0.5 4 -1
+22 IN 23 24 14 0.5 5 -1
+23 LN -1 -1 -1 -1 6 0
+24 IN 25 26 15 0.5 6 -1
+25 LN -1 -1 -1 -1 7 0
+26 LN -1 -1 -1 -1 7 1
+27 LN -1 -1 -1 -1 5 1
+28 IN 29 30 1 0.5 1 -1
+29 LN -1 -1 -1 -1 2 0
+30 LN -1 -1 -1 -1 2 1
