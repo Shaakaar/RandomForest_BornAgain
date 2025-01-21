@@ -24,6 +24,8 @@ from sklearn.metrics import classification_report
 from tqdm import tqdm  
 from datetime import datetime  
 from pathlib import Path
+from collections import Counter
+
 
 # Project-specific modules
 import datasets as ds
@@ -195,51 +197,124 @@ def calculate_complexity(nn, apl):
     return 0.5 * nn + 0.5 * apl
 
 def get_branch_attributes(tree, node_id):
-    """Get attributes used in a branch from root to node"""
-    feature_path = set()
+    """Get attributes used in a branch from root to node
+    
+    Args:
+        tree: Decision tree classifier
+        node_id: ID of the current node
+    
+    Returns:
+        List of feature indices used in the path from root to node
+    """
+    feature_path = []
     current_id = node_id
     
-    # Traverse up until root
+    # Traverse up the tree until we reach the root (node_id == 0)
     while current_id != 0:
-        # Find parent
+        # Get parent node
         parent_id = -1
-        for i, (left, right) in enumerate(zip(tree.children_left, tree.children_right)):
-            if left == current_id or right == current_id:
+        for i, child in enumerate(tree.tree_.children_left):
+            if child == current_id:
                 parent_id = i
                 break
         if parent_id == -1:
-            break
-            
-        feature_path.add(tree.feature[parent_id])
+            for i, child in enumerate(tree.tree_.children_right):
+                if child == current_id:
+                    parent_id = i
+                    break
+                    
+        # Add feature used in the split
+        feature_path.append(tree.tree_.feature[parent_id])
         current_id = parent_id
         
+    # Add root node feature
+    feature_path.append(tree.tree_.feature[0])
     return feature_path
 
 def calculate_DAR(clf, X_test):
-    """Calculate Duplicate Attribute Ratio"""
-    tree = clf.tree_
+    """Calculate Duplicate Attribute Ratio
+    
+    Args:
+        clf: Trained decision tree classifier
+        X_test: Test samples
+        
+    Returns:
+        float: Duplicate Attribute Ratio
+    """
     n_samples = X_test.shape[0]
-    leaf_ids = clf.apply(X_test)  # Get leaf node for each sample
+    tree = clf.tree_
     
-    # Calculate w(θ) for each unique leaf
-    leaf_weights = {}  # leaf_id -> weight
-    for leaf_id in np.unique(leaf_ids):
-        leaf_weights[leaf_id] = np.sum(leaf_ids == leaf_id) / n_samples
+    # Get leaf node for each test sample
+    leaf_nodes = clf.apply(X_test)
     
-    # Calculate PDAR(θ) for each leaf
-    leaf_pdars = {}  # leaf_id -> pdar
-    for leaf_id in leaf_weights.keys():
-        attributes = get_branch_attributes(tree, leaf_id)
-        if len(attributes) > 0:  # Avoid division by zero
-            leaf_pdars[leaf_id] = (len(attributes) - len(set(attributes))) / len(attributes)
-        else:
-            leaf_pdars[leaf_id] = 0
+    # Calculate DAR for each sample's path
+    total_dar = 0
     
-    # Calculate final DAR
-    dar = sum(leaf_weights[leaf_id] * leaf_pdars[leaf_id] 
-             for leaf_id in leaf_weights.keys())
+    for i, leaf_node in enumerate(leaf_nodes):
+        # Get features in path to leaf
+        path_features = get_branch_attributes(clf, leaf_node)
+        
+        # Count duplicate features
+        feature_counts = Counter(path_features)
+        n_duplicates = sum(count - 1 for count in feature_counts.values() if count > 1)
+        
+        # Calculate PDAR for this branch (eq 9.4)
+        n_nodes = len(path_features)
+        pdar = n_duplicates / n_nodes if n_nodes > 0 else 0
+        
+        # Calculate sample weight (eq 9.3)
+        w = 1.0 / n_samples
+        
+        # Add weighted PDAR to total
+        total_dar += w * pdar
     
-    return dar
+    return total_dar
+
+def zhou_interpretability(clf):
+    """Calculate Zhou's interpretability measure
+    
+    Formula: I = -0.33 · number of leaves - 0.25 · average depth + 0.13 · maximum depth + 0.59
+    
+    Args:
+        clf: Trained decision tree classifier
+        
+    Returns:
+        float: Interpretability score
+    """
+    tree = clf.tree_
+    
+    # Calculate number of leaves
+    n_leaves = tree.n_leaves
+    
+    # Calculate depths of all nodes
+    depths = np.zeros(tree.node_count, dtype=np.int32)
+    stack = [(0, 0)]  # (node_id, depth)
+    while stack:
+        node_id, depth = stack.pop()
+        depths[node_id] = depth
+        
+        left = tree.children_left[node_id]
+        right = tree.children_right[node_id]
+        
+        if left != -1:
+            stack.append((left, depth + 1))
+        if right != -1:
+            stack.append((right, depth + 1))
+    
+    # Calculate maximum depth
+    max_depth = np.max(depths)
+    
+    # Calculate average depth (only of leaf nodes)
+    leaf_depths = [depths[i] for i in range(tree.node_count) if tree.children_left[i] == -1]
+    avg_depth = np.mean(leaf_depths)
+    
+    # Apply Zhou's formula
+    interpretability = (-0.33 * n_leaves - 
+                       0.25 * avg_depth + 
+                       0.13 * max_depth + 
+                       0.59)
+    
+    return interpretability
 
 def get_subtree_structure(tree, node_id):
     """Get structural representation of subtree rooted at node_id"""
@@ -338,19 +413,17 @@ def run_all_processes():
                     # Calculate total leaves and nodes for all trees
                     rf_leaves = 0
                     rf_nodes = 0
+                    rf_apl = 0
+                    rf_dar = 0
+                    rf_dsr = 0
+                    rf_zhou = 0
                     for est in rf_model.estimators_:
                         rf_leaves += est.tree_.n_leaves
                         rf_nodes += est.tree_.node_count
-
-                    # Calculate average path length across all trees
-                    total_path_length = 0
-                    n_samples = 0
-                    for est in rf_model.estimators_:
-                        total_path_length += calculate_APL(est, X_test)
-                        n_samples += 1
-                    
-
-                    avg_path_length = total_path_length / n_samples
+                        rf_apl += calculate_APL(est, X_test)
+                        rf_dar += calculate_DAR(est, X_test)
+                        rf_dsr += calculate_DSR(est)
+                        rf_zhou += zhou_interpretability(est)                  
 
                     # Store
                     aggregated_results.append({
@@ -358,16 +431,17 @@ def run_all_processes():
                         "Trees":      n_trees,
                         "Max Depth":  max_tree_depth,
                         "Method":     "RandomForest",
-                        "Train Acc":  report_rf_tr["accuracy"],
-                        "Train F1":   report_rf_tr["weighted avg"]["f1-score"],
-                        "Test Acc":   report_rf["accuracy"],
-                        "Test F1":    report_rf["weighted avg"]["f1-score"],
+                        "Train Acc":  round(report_rf_tr["accuracy"], 3),
+                        "Train F1":   round(report_rf_tr["weighted avg"]["f1-score"], 3),
+                        "Test Acc":   round(report_rf["accuracy"], 3),
+                        "Test F1":    round(report_rf["weighted avg"]["f1-score"], 3),
                         "Leaves":     rf_leaves,
                         "Nodes":      rf_nodes,
-                        "Avg Path Length": avg_path_length,
+                        "Avg Path Length": round(rf_apl, 3),
                         # "Complexity Score": None,
-                        "DAR": None,
-                        "DSR": None,
+                        "DAR": round(rf_dar, 3),
+                        "DSR": round(rf_dsr, 3),
+                        "Zhou score": round(rf_zhou, 3)
                     })
 
                     # Optional: save a figure for the first tree if you want
@@ -474,28 +548,30 @@ def run_all_processes():
                         ba_leaves     = born_again_clf.tree_.n_leaves
                         ba_nodes      = born_again_clf.tree_.node_count
                         ba_avg_path_length = calculate_APL(born_again_clf, X_test)
-                        ba_complexity = calculate_complexity(ba_nodes, ba_avg_path_length)
-
-                        # Calculate clarity metrics
+                        # ba_complexity = calculate_complexity(ba_nodes, ba_avg_path_length)
                         ba_dar = calculate_DAR(born_again_clf, X_test)
                         ba_dsr = calculate_DSR(born_again_clf)
+                        ba_zhou = zhou_interpretability(born_again_clf)
 
+                        # BornAgain results
                         aggregated_results.append({
                             "Dataset":   current_dataset,
                             "Trees":     n_trees,
                             "Max Depth": max_tree_depth,
                             "Method":    "BornAgain",
-                            "Train Acc": rep_ba_tr["accuracy"],
-                            "Train F1":  rep_ba_tr["weighted avg"]["f1-score"],
-                            "Test Acc":  rep_ba["accuracy"],
-                            "Test F1":   rep_ba["weighted avg"]["f1-score"],
+                            "Train Acc": round(rep_ba_tr["accuracy"], 3),
+                            "Train F1":  round(rep_ba_tr["weighted avg"]["f1-score"], 3),
+                            "Test Acc":  round(rep_ba["accuracy"], 3),
+                            "Test F1":   round(rep_ba["weighted avg"]["f1-score"], 3),
                             "Leaves":    ba_leaves,
                             "Nodes":     ba_nodes,
-                            "Avg Path Length": ba_avg_path_length,
+                            "Avg Path Length": round(ba_avg_path_length, 3),
                             # "Complexity Score": ba_complexity,
-                            "DAR": ba_dar,
-                            "DSR": ba_dsr,
+                            "DAR": round(ba_dar, 3),
+                            "DSR": round(ba_dsr, 3),
+                            "Zhou score": round(ba_zhou, 3)
                         })
+
                         # Evaluate pruned
                         ba_pruned_test_pred  = born_again_pruned_clf.predict(X_test)
                         ba_pruned_train_pred = born_again_pruned_clf.predict(X_train)
@@ -504,27 +580,29 @@ def run_all_processes():
                         ba_pruned_leaves     = born_again_pruned_clf.tree_.n_leaves
                         ba_pruned_nodes      = born_again_pruned_clf.tree_.node_count
                         ba_pruned_avg_path_length = calculate_APL(born_again_clf, X_test)
-                        ba_pruned_complexity = calculate_complexity(ba_pruned_nodes, ba_pruned_avg_path_length)
-                        # Calculate clarity metrics
+                        # ba_pruned_complexity = calculate_complexity(ba_pruned_nodes, ba_pruned_avg_path_length)
                         ba_pruned_dar = calculate_DAR(born_again_pruned_clf, X_test)
                         ba_pruned_dsr = calculate_DSR(born_again_pruned_clf)
+                        ba_pruned_zhou = zhou_interpretability(born_again_pruned_clf)
 
 
+                        # BornAgain-Pruned results
                         aggregated_results.append({
                             "Dataset":   current_dataset,
                             "Trees":     n_trees,
                             "Max Depth": max_tree_depth,
                             "Method":    "BornAgain-Pruned",
-                            "Train Acc": rep_bap_tr["accuracy"],
-                            "Train F1":  rep_bap_tr["weighted avg"]["f1-score"],
-                            "Test Acc":  rep_bap["accuracy"],
-                            "Test F1":   rep_bap["weighted avg"]["f1-score"],
+                            "Train Acc": round(rep_bap_tr["accuracy"], 3),
+                            "Train F1":  round(rep_bap_tr["weighted avg"]["f1-score"], 3),
+                            "Test Acc":  round(rep_bap["accuracy"], 3),
+                            "Test F1":   round(rep_bap["weighted avg"]["f1-score"], 3),
                             "Leaves":    ba_pruned_leaves,
                             "Nodes":     ba_pruned_nodes,
-                            "Avg Path Length": ba_pruned_avg_path_length,
+                            "Avg Path Length": round(ba_pruned_avg_path_length, 3),
                             # "Complexity Score": ba_pruned_complexity,
-                            "DAR": ba_pruned_dar,
-                            "DSR": ba_pruned_dsr,
+                            "DAR":       round(ba_pruned_dar, 3),
+                            "DSR":       round(ba_pruned_dsr, 3),
+                            "Zhou score": round(ba_pruned_zhou, 3)
                         })
 
                         # Save partial CSV again
