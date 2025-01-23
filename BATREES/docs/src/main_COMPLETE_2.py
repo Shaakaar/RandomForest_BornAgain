@@ -263,6 +263,7 @@ def run_born_again(objectives, datasets, folds, n_trees, tree_depth,
                                                              (df_part_MEAN["Method"] == "BornAgain") & (df_part_MEAN["Objective"] == 'NaN') |
                                                              (df_part_MEAN["Method"] == "BornAgain-Pruned") & (df_part_MEAN["Objective"] == 'NaN'))
                                     df_part_MEAN_filtered = df_part_MEAN[random_forest_filter]
+                                    df_part_MEAN_filtered = df_part_MEAN_filtered.drop(columns='Fold')
                                     df_part_MEAN_filtered = df_part_MEAN_filtered.round(3)
                                     df_part.to_csv(PARTIAL_CSV_PATH, index=False)
                                     df_part_MEAN_filtered.to_csv(PARTIAL_CSV_PATH_2, index=False)
@@ -737,6 +738,7 @@ def run_all_processes():
                     
                     df_partial.sort_values(["Dataset","Trees","Max Depth","Method"], inplace=True)
                     df_partial_MEAN.sort_values(["Dataset","Trees","Max Depth","Method"], inplace=True)
+                    df_partial_MEAN = df_partial_MEAN.drop(columns='Fold')
                     df_partial_MEAN = df_partial_MEAN.round(3)
                     df_partial.to_csv(PARTIAL_CSV_PATH, index=False)
                     df_partial_MEAN.to_csv(PARTIAL_CSV_PATH_2, index=False)
@@ -918,6 +920,92 @@ print('Total minutes BA:', np.sum(results_df[results_df['Method'] == 'BornAgain'
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################################################
+### Run BornAgain outside the loop (when you have the RF files already)
+####################################################################################
+
+current_dataset_loop = ['HTRU2_NEW_sub1000', 'HTRU2_NEW_sub2000', 'HTRU2_NEW_sub5000', 'HTRU2_NEW_sub10000', 'HTRU2',
+                        'FICO_NEW_sub1000', 'FICO_NEW_sub2000', 'FICO_NEW_sub5000', 'FICO_NEW_sub10000', 'FICO']
+current_fold_loop = [1]
+n_trees_loop = [5, 10, 50, 100, 250, 500]
+current_obj_loop = [4]
+max_tree_depth_loop = [3, 4, 7, 10, 15, 20]
+
+aggregated_results = pd.read_csv(PARTIAL_CSV_PATH)
+aggregated_results = aggregated_results.to_dict(orient="records")
+
+#==============================================================================
+# Running BornAgain 
+#==============================================================================
+# (B) Run BornAgain 
+completed_runs, run_times = run_born_again(
+    current_obj_loop,
+    current_dataset_loop,
+    current_fold_loop,
+    n_trees_loop,
+    max_tree_depth_loop,
+    aggregated_results,      
+    PARTIAL_CSV_PATH
+)
+
+
+# C) Final Output
+results_df = pd.DataFrame(aggregated_results)
+results_df["Method"] = pd.Categorical(
+    results_df["Method"],
+    categories=["RandomForest", "BornAgain", "BornAgain-Pruned"],
+    ordered=True
+)
+results_df.sort_values(["Dataset", "Trees", "Max Depth", "Method"], inplace=True)
+log_time("Saving final CSV => aggregated_results.csv")
+results_df.to_csv("aggregated_results.csv", index=False)
+
+end_time = datetime.now()
+print("\n" + "="*50, "\nFINAL RESULTS:\n" + "="*50 , results_df, "\n")
+
+total_runtime = end_time - start_time
+print("="*50)
+print(f"Total Run Time (RF + BA): {str(total_runtime)}")
+print("="*50)
+log_time("Script ended")
 
 
 
