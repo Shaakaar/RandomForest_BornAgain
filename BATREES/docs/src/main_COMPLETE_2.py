@@ -672,7 +672,6 @@ def run_all_processes():
                     for est in rf_model.estimators_:
                         rf_leaves += est.tree_.n_leaves
                         rf_nodes  += est.tree_.node_count
-                        rf_depth  = "NaN"
                         rf_apl    += calculate_APL(est, X_test)
                         #rf_dar    += calculate_DAR(est, X_test)
                         #rf_dsr    += calculate_DSR(est)
@@ -691,7 +690,7 @@ def run_all_processes():
                         "Test F1":   round(report_rf["weighted avg"]["f1-score"], 3),
                         "Leaves":    rf_leaves,
                         "Nodes":     rf_nodes,
-                        "Depth":     rf_depth,
+                        "Depth":     np.nan,
                         "Avg Path Length": round(rf_apl, 3),
                         #"DAR":       round(rf_dar, 3),
                         #"DSR":       round(rf_dsr, 3),
