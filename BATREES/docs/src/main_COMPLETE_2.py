@@ -1,8 +1,9 @@
 #%%
-# ------------------------------------------------------------------
+# -------------------------------------------------------------------------------------
 #  CODE: BORN AGAIN ALGORITHM
 #  RESULTS: Dynamically being saved to ->
-#  src\aggregated_results_partial.csv and src\output_new
+#  src\aggregated_results_partial.csv, src\aggregated_results_partial_MEAN.csv ->
+#  and src\output_new
 #  MinGW: download on https://sourceforge.net/projects/mingw/  ->
 #  Add to path: C:...\MinGW\msys\1.0\bin and C:...\MinGW\bin
 #  CPLEX: download on https://www.ibm.com/products/ilog-cplex-optimization-studio ->
@@ -11,7 +12,7 @@
 #  Add to path: C:...\Graphviz-12.2.1-win64\bin or C:...\Graphviz\bin
 #  Python version: 3.7
 #  scikit-learn version: 0.22.1
-# ------------------------------------------------------------------
+# -------------------------------------------------------------------------------------
 
 
 # Import packages
@@ -28,6 +29,7 @@ from datetime import datetime
 from pathlib import Path
 from collections import Counter
 import time
+import re
 
 # Project-specific modules
 import datasets as ds
@@ -37,20 +39,45 @@ import visualization as tree_view
 
 
 
+
+#%%
+data_names = []
+dataset_name_ = "FICO"
+n_features = [1,2,4,8,12,15,17]
+n_sizes = [500,1000,2000,5000,7500,10459]
+repeats = 2
+
+for rep in range(1,repeats+1):
+    for feature in n_features:
+        for size in n_sizes:
+
+            data_names.append(f'{dataset_name_}_Features_{feature}_Repeat_{rep}_Sub_{size}')
+print(data_names)
+
+
 def log_time(message):
     """Print a timestamped log message."""
     print(f"{message}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+
+def strip_repeat_portion(dataset_name):
+    """
+    Removes `_Repeat_##` from the dataset name, 
+    leaving e.g. `COMPAS_Features_1_Sub_5000`.
+    """
+    return re.sub(r'_Repeat_\d+', '', dataset_name)
+
 
 # Create directories for output
 figure_output_dir = Path("output_new/Figures")
 figure_output_dir.mkdir(parents=True, exist_ok=True)
 
 # Parameters
-current_dataset_loop = ['COMPAS-ProPublica']
+current_dataset_loop = data_names
 current_fold_loop = [1,2,3]
 n_trees_loop = [5, 10, 50, 100, 250, 500]
 current_obj_loop = [2,4]
-max_tree_depth_loop = [3, 4, 7, 10, 15, 20]
+max_tree_depth_loop = [30,40,50]
 
 # We'll keep a global CSV path for partial results
 PARTIAL_CSV_PATH = "aggregated_results_partial.csv"
@@ -251,13 +278,13 @@ def run_born_again(objectives, datasets, folds, n_trees, tree_depth,
                                         categories=["RandomForest", "BornAgain", "BornAgain-Pruned"],
                                         ordered=True
                                     )
-
+                                    df_part['BaseDataset'] = df_part['Dataset'].apply(strip_repeat_portion)
                                     df_part_MEAN = df_part.groupby(
-                                        ['Dataset', 'Objective', 'Trees', 'Max Depth', 'Method']
+                                        ['BaseDataset', 'Objective', 'Trees', 'Max Depth', 'Method']
                                     ).mean().reset_index()
                                     
-                                    df_part.sort_values(["Dataset","Trees","Max Depth","Method"], inplace=True)
-                                    df_part_MEAN.sort_values(["Dataset","Trees","Max Depth","Method"], inplace=True)
+                                    df_part.sort_values(["BaseDataset","Trees","Max Depth","Method"], inplace=True)
+                                    df_part_MEAN.sort_values(["BaseDataset","Trees","Max Depth","Method"], inplace=True)
 
                                     random_forest_filter = ~((df_part_MEAN["Method"] == "RandomForest") & (df_part_MEAN["Objective"] != 'NaN') |
                                                              (df_part_MEAN["Method"] == "BornAgain") & (df_part_MEAN["Objective"] == 'NaN') |
@@ -729,14 +756,15 @@ def run_all_processes():
                         df_partial["Method"],
                         categories=["RandomForest", "BornAgain", "BornAgain-Pruned"],
                         ordered=True
-                    )                
+                    )               
 
+                    df_partial['BaseDataset'] = df_partial['Dataset'].apply(strip_repeat_portion)
                     df_partial_MEAN = df_partial.groupby(
-                                        ['Dataset', 'Objective', 'Trees', 'Max Depth', 'Method']
+                                        ['BaseDataset', 'Objective', 'Trees', 'Max Depth', 'Method']
                                     ).mean().reset_index()
                     
-                    df_partial.sort_values(["Dataset","Trees","Max Depth","Method"], inplace=True)
-                    df_partial_MEAN.sort_values(["Dataset","Trees","Max Depth","Method"], inplace=True)
+                    df_partial.sort_values(["BaseDataset","Trees","Max Depth","Method"], inplace=True)
+                    df_partial_MEAN.sort_values(["BaseDataset","Trees","Max Depth","Method"], inplace=True)
                     df_partial_MEAN = df_partial_MEAN.drop(columns='Fold')
                     df_partial_MEAN = df_partial_MEAN.round(3)
                     df_partial.to_csv(PARTIAL_CSV_PATH, index=False)
@@ -895,7 +923,10 @@ Complete_runtime = total_runtime + total_runtime_3
 print('\n' + '=='*50)
 print(f'COMPLETE TOTAL RUNTIME (RF + BA + Visualizing): {Complete_runtime}')
 print('=='*50)
+#%%
 
+
+results_df['Depth']
 
 #%%
 
@@ -1007,90 +1038,6 @@ print("="*50)
 log_time("Script ended")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-####################################################################################
-### Run BornAgain outside the loop (when you have the RF files already)
-####################################################################################
-
-current_dataset_loop = ['HTRU2_NEW_sub1000', 'HTRU2_NEW_sub2000', 'HTRU2_NEW_sub5000', 'HTRU2_NEW_sub10000', 'HTRU2',
-                        'FICO_NEW_sub1000', 'FICO_NEW_sub2000', 'FICO_NEW_sub5000', 'FICO_NEW_sub10000', 'FICO']
-current_fold_loop = [1]
-n_trees_loop = [5, 10, 50, 100, 250, 500]
-current_obj_loop = [4]
-max_tree_depth_loop = [3, 4, 7, 10, 15, 20]
-
-aggregated_results = pd.read_csv(PARTIAL_CSV_PATH)
-aggregated_results = aggregated_results.to_dict(orient="records")
-
-#==============================================================================
-# Running BornAgain 
-#==============================================================================
-# (B) Run BornAgain 
-completed_runs, run_times = run_born_again(
-    current_obj_loop,
-    current_dataset_loop,
-    current_fold_loop,
-    n_trees_loop,
-    max_tree_depth_loop,
-    aggregated_results,      
-    PARTIAL_CSV_PATH
-)
-
-
-# C) Final Output
-results_df = pd.DataFrame(aggregated_results)
-results_df["Method"] = pd.Categorical(
-    results_df["Method"],
-    categories=["RandomForest", "BornAgain", "BornAgain-Pruned"],
-    ordered=True
-)
-results_df.sort_values(["Dataset", "Trees", "Max Depth", "Method"], inplace=True)
-log_time("Saving final CSV => aggregated_results.csv")
-results_df.to_csv("aggregated_results.csv", index=False)
-
-end_time = datetime.now()
-print("\n" + "="*50, "\nFINAL RESULTS:\n" + "="*50 , results_df, "\n")
-
-total_runtime = end_time - start_time
-print("="*50)
-print(f"Total Run Time (RF + BA): {str(total_runtime)}")
-print("="*50)
-log_time("Script ended")
 
 
 
